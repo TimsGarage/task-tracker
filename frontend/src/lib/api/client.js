@@ -18,7 +18,8 @@ export async function apiRequest(path, options = {}) {
 	});
 
 	if (!response.ok) {
-		const message = (await response.text()) || 'Request failed';
+		const message = (await response.text()) || 'The request could not be completed';
+
 		throw new ApiError(message, response.status);
 	}
 

@@ -21,7 +21,6 @@ export function createProject(title) {
 /**
  * @param {number} projectId
  * @param {string} title
- * @returns {Promise<import("../domain/types.js").Project>}
  */
 export function renameProject(projectId, title) {
 	return apiRequest(`/projects/${projectId}`, {
@@ -32,7 +31,6 @@ export function renameProject(projectId, title) {
 
 /**
  * @param {number} projectId
- * @returns {Promise<null>}
  */
 export function deleteProject(projectId) {
 	return apiRequest(`/projects/${projectId}`, {
