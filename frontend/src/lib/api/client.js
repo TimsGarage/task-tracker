@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+import { env } from '$env/dynamic/public';
 
 export class ApiError extends Error {
 	constructor(message, status) {
@@ -6,6 +6,10 @@ export class ApiError extends Error {
 		this.name = 'ApiError';
 		this.status = status;
 	}
+}
+
+function getApiBaseUrl() {
+	return env.PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:8080/api';
 }
 
 async function getErrorMessage(response) {
@@ -24,7 +28,7 @@ async function getErrorMessage(response) {
 }
 
 export async function apiRequest(path, options = {}) {
-	const response = await fetch(`${API_BASE_URL}${path}`, {
+	const response = await fetch(`${getApiBaseUrl()}${path}`, {
 		...options,
 		headers: {
 			...(options.body ? { 'Content-Type': 'application/json' } : {}),
