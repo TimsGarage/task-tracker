@@ -64,12 +64,16 @@
 				/>
 
 				<div class="grid grid-cols-1 items-start gap-8 xl:grid-cols-12">
-					<div class="flex flex-col gap-8 xl:col-span-7">
+					<div
+						class={['flex flex-col gap-8', app.selectedTodo ? 'xl:col-span-7' : 'xl:col-span-12']}
+					>
 						<TodoList
 							todos={selectedTodos}
 							projectTitle={app.selectedProject.title}
+							selectedTodoId={app.selectedTodoId}
 							focusToken={app.composerFocusToken}
 							oncreate={(title) => app.addTodo(title)}
+							onselect={(todoId) => app.selectTodo(todoId)}
 							ontoggle={(todoId, done) => app.toggleTodo(todoId, done)}
 							onrename={(todoId, title) => app.editTodo(todoId, title)}
 							ondelete={(todoId) => app.removeTodo(todoId)}
@@ -78,7 +82,18 @@
 						<InspirationBanner />
 					</div>
 
-					<TaskDetailPanel project={app.selectedProject} />
+					{#if app.selectedTodo}
+						<TaskDetailPanel
+							todo={app.selectedTodo}
+							projects={app.projects}
+							onclose={() => app.closeTodo()}
+							onsave={(todoId, changes) => app.saveTodo(todoId, changes)}
+							ondelete={(todoId) => app.removeTodo(todoId)}
+							oncreatesubtask={(todoId, title) => app.addSubtask(todoId, title)}
+							onupdatesubtask={(subtaskId, changes) => app.editSubtask(subtaskId, changes)}
+							ondeletesubtask={(subtaskId) => app.removeSubtask(subtaskId)}
+						/>
+					{/if}
 				</div>
 			{:else}
 				<div class="flex min-h-[65vh] flex-col items-center justify-center text-center">
@@ -93,7 +108,7 @@
 					</h1>
 
 					<p class="text-on-surface-variant mt-2 max-w-md text-sm">
-						Use the plus button beside Projects in the sidebar to create a place for your tasks.
+						Use the plus button beside Projects to create a place for your tasks.
 					</p>
 				</div>
 			{/if}

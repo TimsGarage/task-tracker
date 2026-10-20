@@ -1,7 +1,17 @@
 <script>
 	import TodoItem from './TodoItem.svelte';
 
-	let { todos, projectTitle, focusToken = 0, oncreate, ontoggle, onrename, ondelete } = $props();
+	let {
+		todos,
+		projectTitle,
+		selectedTodoId = null,
+		focusToken = 0,
+		oncreate,
+		onselect,
+		ontoggle,
+		onrename,
+		ondelete
+	} = $props();
 
 	let newTodoTitle = $state('');
 	let creating = $state(false);
@@ -25,10 +35,7 @@
 		event.preventDefault();
 
 		const title = newTodoTitle.trim();
-
-		if (!title || creating) {
-			return;
-		}
+		if (!title || creating) return;
 
 		creating = true;
 
@@ -36,7 +43,7 @@
 			await oncreate(title);
 			newTodoTitle = '';
 		} catch {
-			// The app-level error banner handles the error.
+			// Handled by the app-level banner.
 		} finally {
 			creating = false;
 		}
@@ -45,7 +52,7 @@
 
 <div class="mb-8">
 	<form
-		class="bg-surface-container-lowest relative flex items-center gap-3 rounded-xl p-2 shadow-sm transition-all focus-within:shadow-md"
+		class="bg-surface-container-lowest flex items-center gap-3 rounded-xl p-2 shadow-sm focus-within:shadow-md"
 		onsubmit={submit}
 	>
 		<div
@@ -58,13 +65,12 @@
 			bind:this={inputElement}
 			bind:value={newTodoTitle}
 			class="text-on-surface placeholder:text-outline w-full bg-transparent py-1.5 text-sm focus:outline-none"
-			placeholder="Add a mindful task... Press Enter to cultivate"
-			aria-label="New todo title"
+			placeholder="Add a mindful task..."
 			disabled={creating}
 		/>
 
 		<button
-			class="bg-primary text-on-primary hover:bg-primary/90 rounded-lg px-3.5 py-2 text-xs font-medium transition-colors disabled:opacity-50"
+			class="bg-primary text-on-primary rounded-lg px-3.5 py-2 text-xs font-medium disabled:opacity-50"
 			type="submit"
 			disabled={!canCreate}
 		>
@@ -75,25 +81,25 @@
 
 <div class="flex flex-col gap-8">
 	<section class="space-y-3">
-		<div class="flex items-center justify-between pb-1">
-			<div class="flex items-center gap-2">
-				<span class="material-symbols-outlined text-primary text-lg"> wb_sunny </span>
+		<div class="flex items-center justify-between">
+			<h2 class="font-headline text-base font-semibold">Active Tasks</h2>
 
-				<h2 class="font-headline text-on-surface text-base font-semibold tracking-tight">
-					Active Tasks
-				</h2>
-			</div>
-
-			<span
-				class="bg-surface-container text-on-surface-variant rounded-full px-2 py-0.5 text-xs font-semibold"
-			>
+			<span class="bg-surface-container rounded-full px-2 py-0.5 text-xs">
 				{openTodos.length} remaining
 			</span>
 		</div>
 
 		<div class="space-y-2.5">
 			{#each openTodos as todo (todo.id)}
-				<TodoItem {todo} {projectTitle} {ontoggle} {onrename} {ondelete} />
+				<TodoItem
+					{todo}
+					{projectTitle}
+					selected={todo.id === selectedTodoId}
+					{onselect}
+					{ontoggle}
+					{onrename}
+					{ondelete}
+				/>
 			{/each}
 
 			{#if openTodos.length === 0}
@@ -108,25 +114,25 @@
 
 	{#if completedTodos.length > 0}
 		<section class="space-y-3">
-			<div class="flex items-center justify-between pb-1">
-				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-tertiary text-lg"> check_circle </span>
+			<div class="flex items-center justify-between">
+				<h2 class="font-headline text-base font-semibold">Completed</h2>
 
-					<h2 class="font-headline text-on-surface text-base font-semibold tracking-tight">
-						Completed
-					</h2>
-				</div>
-
-				<span
-					class="bg-surface-container text-secondary rounded-full px-2 py-0.5 text-xs font-semibold"
-				>
+				<span class="bg-surface-container rounded-full px-2 py-0.5 text-xs">
 					{completedTodos.length} done
 				</span>
 			</div>
 
 			<div class="space-y-2">
 				{#each completedTodos as todo (todo.id)}
-					<TodoItem {todo} {projectTitle} {ontoggle} {onrename} {ondelete} />
+					<TodoItem
+						{todo}
+						{projectTitle}
+						selected={todo.id === selectedTodoId}
+						{onselect}
+						{ontoggle}
+						{onrename}
+						{ondelete}
+					/>
 				{/each}
 			</div>
 		</section>

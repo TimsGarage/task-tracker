@@ -2,34 +2,30 @@
 	import ConfirmAction from '../ui/ConfirmAction.svelte';
 	import InlineEditor from '../ui/InlineEditor.svelte';
 
-	let { todo, projectTitle, ontoggle, onrename, ondelete } = $props();
+	let { todo, projectTitle, selected = false, onselect, ontoggle, onrename, ondelete } = $props();
 
 	let mode = $state('view');
 	let toggling = $state(false);
 
 	async function toggle() {
-		if (toggling) {
-			return;
-		}
+		if (toggling) return;
 
 		toggling = true;
 
 		try {
 			await ontoggle(todo.id, !todo.done);
 		} catch {
-			// The app-level error banner handles the error.
+			// Handled by the app-level banner.
 		} finally {
 			toggling = false;
 		}
 	}
 
 	async function saveRename(title) {
-		if (title === todo.title) {
-			mode = 'view';
-			return;
+		if (title !== todo.title) {
+			await onrename(todo.id, title);
 		}
 
-		await onrename(todo.id, title);
 		mode = 'view';
 	}
 
@@ -41,12 +37,18 @@
 
 <article
 	class={[
-		'group rounded-xl p-4 shadow-sm transition-all',
-		todo.done
-			? 'bg-surface-container-low opacity-75 hover:opacity-100'
-			: 'bg-surface-container-low hover:bg-surface-container-lowest'
+		'group relative rounded-xl p-4 shadow-sm transition-all',
+		selected
+			? 'bg-surface-container-lowest ring-primary/30 ring-2'
+			: todo.done
+				? 'bg-surface-container-low opacity-75 hover:opacity-100'
+				: 'bg-surface-container-low hover:bg-surface-container-lowest'
 	]}
 >
+	{#if selected}
+		<div class="bg-primary absolute top-1/4 bottom-0 -left-1 h-1/2 w-1.5 rounded-xl"></div>
+	{/if}
+
 	{#if mode === 'rename'}
 		<InlineEditor
 			initialValue={todo.title}
@@ -66,7 +68,7 @@
 				<button
 					type="button"
 					class={[
-						'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all active:scale-90 disabled:opacity-50',
+						'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all active:scale-90',
 						todo.done
 							? 'bg-primary text-on-primary'
 							: 'border-outline hover:border-primary border-2'
@@ -80,35 +82,49 @@
 					{/if}
 				</button>
 
-				<div class="min-w-0">
-					<button
-						type="button"
+				<button type="button" class="min-w-0 text-left" onclick={() => onselect(todo.id)}>
+					<span
 						class={[
-							'block max-w-full truncate text-left text-sm',
+							'block max-w-full truncate text-sm',
 							todo.done ? 'text-outline font-medium line-through' : 'text-on-surface font-semibold'
 						]}
-						title="Rename task"
-						onclick={() => (mode = 'rename')}
 					>
 						{todo.title}
-					</button>
+					</span>
 
-					<div class="mt-2 flex flex-wrap items-center gap-2">
+					<span class="mt-2 flex flex-wrap items-center gap-2">
 						<span
 							class="bg-primary-fixed text-on-primary-fixed-variant rounded-full px-2 py-0.5 text-[11px] font-semibold"
 						>
 							{projectTitle}
 						</span>
 
-						<span class="text-outline flex items-center gap-1 text-[11px]">
-							<span class="material-symbols-outlined text-xs">
-								{todo.done ? 'done_all' : 'schedule'}
-							</span>
+						{#if todo.dueDate}
+							<span
+								class="bg-surface-container text-on-surface-variant flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
+							>
+								<span class="material-symbols-outlined text-xs"> schedule </span>
 
-							{todo.done ? 'Completed' : 'Open'}
-						</span>
-					</div>
-				</div>
+								{new Intl.DateTimeFormat('en', {
+									month: 'short',
+									day: 'numeric',
+									hour: 'numeric',
+									minute: '2-digit'
+								}).format(new Date(todo.dueDate))}
+							</span>
+						{/if}
+
+						{#if todo.subtasks?.length}
+							<span
+								class="bg-surface-container text-on-surface-variant flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
+							>
+								<span class="material-symbols-outlined text-xs"> checklist </span>
+
+								{todo.subtasks.length}
+							</span>
+						{/if}
+					</span>
+				</button>
 			</div>
 
 			<div
@@ -118,7 +134,6 @@
 					type="button"
 					class="text-on-surface-variant hover:bg-surface-container-high flex h-8 w-8 items-center justify-center rounded-lg"
 					title="Rename task"
-					aria-label={`Rename ${todo.title}`}
 					onclick={() => (mode = 'rename')}
 				>
 					<span class="material-symbols-outlined text-base"> edit </span>
@@ -128,7 +143,6 @@
 					type="button"
 					class="text-error hover:bg-error-container flex h-8 w-8 items-center justify-center rounded-lg"
 					title="Delete task"
-					aria-label={`Delete ${todo.title}`}
 					onclick={() => (mode = 'delete')}
 				>
 					<span class="material-symbols-outlined text-base"> delete </span>

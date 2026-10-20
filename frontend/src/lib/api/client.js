@@ -8,6 +8,21 @@ export class ApiError extends Error {
 	}
 }
 
+async function getErrorMessage(response) {
+	const contentType = response.headers.get('Content-Type') ?? '';
+
+	if (contentType.includes('application/json')) {
+		try {
+			const body = await response.json();
+			return body.error || body.message || 'Request failed';
+		} catch {
+			return 'Request failed';
+		}
+	}
+
+	return (await response.text()) || 'Request failed';
+}
+
 export async function apiRequest(path, options = {}) {
 	const response = await fetch(`${API_BASE_URL}${path}`, {
 		...options,
@@ -18,9 +33,7 @@ export async function apiRequest(path, options = {}) {
 	});
 
 	if (!response.ok) {
-		const message = (await response.text()) || 'The request could not be completed';
-
-		throw new ApiError(message, response.status);
+		throw new ApiError(await getErrorMessage(response), response.status);
 	}
 
 	if (response.status === 204) {

@@ -1,10 +1,18 @@
 import { createProject, deleteProject, getProjects, renameProject } from '../api/projects.js';
 
-import { createTodo, deleteTodo, updateTodo } from '../api/todos.js';
+import {
+	createSubtask,
+	createTodo,
+	deleteSubtask,
+	deleteTodo,
+	updateSubtask,
+	updateTodo
+} from '../api/todos.js';
 
 export class TodoAppState {
 	projects = $state([]);
 	selectedProjectId = $state(null);
+	selectedTodoId = $state(null);
 	error = $state('');
 	loading = $state(true);
 	composerFocusToken = $state(0);
@@ -13,23 +21,20 @@ export class TodoAppState {
 		return this.projects.find((project) => project.id === this.selectedProjectId) ?? null;
 	}
 
-	get totalTodoCount() {
-		return this.projects.reduce((total, project) => total + (project.todos?.length ?? 0), 0);
-	}
-
-	get completedTodoCount() {
-		return this.projects.reduce(
-			(total, project) => total + (project.todos?.filter((todo) => todo.done).length ?? 0),
-			0
-		);
-	}
-
-	get completionPercentage() {
-		if (this.totalTodoCount === 0) {
-			return 0;
+	get selectedTodo() {
+		if (this.selectedTodoId === null) {
+			return null;
 		}
 
-		return Math.round((this.completedTodoCount / this.totalTodoCount) * 100);
+		for (const project of this.projects) {
+			const todo = project.todos?.find((item) => item.id === this.selectedTodoId);
+
+			if (todo) {
+				return todo;
+			}
+		}
+
+		return null;
 	}
 
 	async perform(action) {
@@ -49,11 +54,13 @@ export class TodoAppState {
 
 		this.projects = projects;
 
-		const preferredProjectExists = projects.some((project) => project.id === preferredProjectId);
+		const projectExists = projects.some((project) => project.id === preferredProjectId);
 
-		this.selectedProjectId = preferredProjectExists
-			? preferredProjectId
-			: (projects[0]?.id ?? null);
+		this.selectedProjectId = projectExists ? preferredProjectId : (projects[0]?.id ?? null);
+
+		if (this.selectedTodoId !== null && !this.selectedTodo) {
+			this.selectedTodoId = null;
+		}
 	}
 
 	async load() {
@@ -62,7 +69,7 @@ export class TodoAppState {
 		try {
 			await this.perform(() => this.refresh(null));
 		} catch {
-			// The error is exposed through this.error.
+			// The error is available through this.error.
 		} finally {
 			this.loading = false;
 		}
@@ -70,6 +77,15 @@ export class TodoAppState {
 
 	selectProject(projectId) {
 		this.selectedProjectId = projectId;
+		this.selectedTodoId = null;
+	}
+
+	selectTodo(todoId) {
+		this.selectedTodoId = todoId;
+	}
+
+	closeTodo() {
+		this.selectedTodoId = null;
 	}
 
 	focusTodoComposer() {
@@ -109,8 +125,9 @@ export class TodoAppState {
 		const projectId = this.selectedProject.id;
 
 		return this.perform(async () => {
-			await createTodo(projectId, title);
+			const todo = await createTodo(projectId, title);
 			await this.refresh(projectId);
+			this.selectedTodoId = todo.id;
 		});
 	}
 
@@ -132,12 +149,56 @@ export class TodoAppState {
 		});
 	}
 
+	async saveTodo(todoId, changes) {
+		return this.perform(async () => {
+			const updated = await updateTodo(todoId, changes);
+
+			await this.refresh(updated.projectId);
+
+			this.selectedProjectId = updated.projectId;
+			this.selectedTodoId = updated.id;
+		});
+	}
+
 	async removeTodo(todoId) {
 		const projectId = this.selectedProjectId;
 
 		return this.perform(async () => {
 			await deleteTodo(todoId);
+			this.selectedTodoId = null;
 			await this.refresh(projectId);
+		});
+	}
+
+	async addSubtask(todoId, title) {
+		const projectId = this.selectedProjectId;
+
+		return this.perform(async () => {
+			await createSubtask(todoId, title);
+			await this.refresh(projectId);
+			this.selectedTodoId = todoId;
+		});
+	}
+
+	async editSubtask(subtaskId, changes) {
+		const projectId = this.selectedProjectId;
+		const todoId = this.selectedTodoId;
+
+		return this.perform(async () => {
+			await updateSubtask(subtaskId, changes);
+			await this.refresh(projectId);
+			this.selectedTodoId = todoId;
+		});
+	}
+
+	async removeSubtask(subtaskId) {
+		const projectId = this.selectedProjectId;
+		const todoId = this.selectedTodoId;
+
+		return this.perform(async () => {
+			await deleteSubtask(subtaskId);
+			await this.refresh(projectId);
+			this.selectedTodoId = todoId;
 		});
 	}
 }
