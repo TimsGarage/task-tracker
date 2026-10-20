@@ -1,0 +1,25 @@
+services:
+    backend:
+        image: ghcr.io/timsgarage/task-tracker/backend:latest
+
+        container_name: task-tracker-backend
+        restart: unless-stopped
+        environment:
+            - PORT=8080 # This is the internal port
+            - DB_PATH=/data/task-tracker.db
+        volumes:
+            - ./data:/data
+        networks:
+            - latios-network
+
+    frontend:
+        container_name: task-tracker-frontend
+        image: ghcr.io/timsgarage/task-tracker/frontend:latest
+        depends_on:
+            - backend
+        networks:
+            - latios-network
+
+networks:
+    latios-network:
+        external: true
